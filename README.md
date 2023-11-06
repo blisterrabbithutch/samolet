@@ -1,3 +1,7 @@
+# Демо
+
+https://blisterrabbithutch.github.io/
+
 # Технологии
 
 Создано на базе CRA с темплейтом TS.
