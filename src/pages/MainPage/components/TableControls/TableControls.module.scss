@@ -1,0 +1,10 @@
+.tableControls {
+  display: flex;
+  width: 100%;
+  margin-bottom: 24px;
+  gap: 24px;
+  > * {
+    flex-grow: 1;
+    flex-shrink: 0;
+  }
+}
