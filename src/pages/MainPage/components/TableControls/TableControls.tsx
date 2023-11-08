@@ -1,5 +1,6 @@
 import { useState, memo, ChangeEvent, FC } from "react";
-import { Button, NumberInput, NumberInputField } from "@chakra-ui/react";
+import { NumberInput, NumberInputField } from "@chakra-ui/react";
+import { Button } from "antd";
 
 import cls from "./TableControls.module.scss";
 import { useCallback } from "react";
@@ -39,10 +40,10 @@ export const TableControls: FC<TableControlProps> = memo((props) => {
           placeholder="Введите количество строк"
         />
       </NumberInput>
-      <Button type="button" onClick={handleRowAdd}>
+      <Button className={cls.button} onClick={handleRowAdd}>
         Добавить строки
       </Button>
-      <Button type="button" onClick={handleStateClick}>
+      <Button className={cls.button} onClick={handleStateClick}>
         Стейт лог
       </Button>
     </div>

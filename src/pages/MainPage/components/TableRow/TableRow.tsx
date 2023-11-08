@@ -1,5 +1,8 @@
-import { ChangeEvent, FC, memo, useCallback } from "react";
-import { Button, Select } from "@chakra-ui/react";
+import { FC, useCallback } from "react";
+import {
+  ASelect,
+  SelectOptionsType,
+} from "../../../../components/Select/ASelect";
 
 import {
   TABLE_COLUMNS_NUMBER,
@@ -25,7 +28,7 @@ interface TableRowProps {
   ) => void;
 }
 
-export const TableRow: FC<TableRowProps> = memo((props) => {
+export const TableRow: FC<TableRowProps> = (props) => {
   const {
     rowIndex,
     setSelectedTableValues,
@@ -35,8 +38,8 @@ export const TableRow: FC<TableRowProps> = memo((props) => {
   } = props;
 
   const handleAddRowValue = useCallback(
-    (previousRowValue: string) => () => {
-      const newRelationRule = generateRelationRule(previousRowValue);
+    (previousRowValue: string | null) => (newValue: string) => {
+      const newRelationRule = generateRelationRule(previousRowValue, newValue);
 
       const updatedTableData = [...tableData, newRelationRule];
       setTableData(updatedTableData);
@@ -44,28 +47,18 @@ export const TableRow: FC<TableRowProps> = memo((props) => {
     [setTableData, tableData]
   );
 
-  const generateButton = useCallback(
-    (parentValue: string) => (
-      <Button type="button" onClick={handleAddRowValue(parentValue)}>
-        Добавить
-      </Button>
-    ),
-    [handleAddRowValue]
+  const updateRowData = useCallback(
+    (rowData: RowDataType, columnNumber: number, selectValue: string) => {
+      let selectedRowData = rowData;
+      if (selectValue === EMPTY_STRING) {
+        delete selectedRowData[columnNumber];
+      } else {
+        selectedRowData = { ...selectedRowData, [columnNumber]: selectValue };
+      }
+      return selectedRowData;
+    },
+    []
   );
-
-  const updateRowData = (
-    rowData: RowDataType,
-    columnNumber: number,
-    selectValue: string
-  ) => {
-    let selectedRowData = rowData;
-    if (selectValue === EMPTY_STRING) {
-      delete selectedRowData[columnNumber];
-    } else {
-      selectedRowData = { ...selectedRowData, [columnNumber]: selectValue };
-    }
-    return selectedRowData;
-  };
 
   const prepareStateForSelectedTableValues = useCallback(
     (selectValue: string, rowOrder: number, columnNumber: number) => {
@@ -91,43 +84,59 @@ export const TableRow: FC<TableRowProps> = memo((props) => {
 
       return updatedValues;
     },
-    [selectedTableValues]
+    [selectedTableValues, updateRowData]
   );
 
   const handleSelectChange = useCallback(
-    (rowOrder: number, columnNumber: number) =>
-      (evt: ChangeEvent<HTMLSelectElement>) => {
-        const selectValue = evt.target.value;
+    (rowOrder: number, columnNumber: number) => (value: string) => {
+      const selectValue = value;
 
-        const newTableValuesState = prepareStateForSelectedTableValues(
-          selectValue,
-          rowOrder,
-          columnNumber
-        );
+      const newTableValuesState = prepareStateForSelectedTableValues(
+        selectValue,
+        rowOrder,
+        columnNumber
+      );
 
-        setSelectedTableValues(newTableValuesState);
-      },
+      setSelectedTableValues(newTableValuesState);
+    },
     [prepareStateForSelectedTableValues, setSelectedTableValues]
   );
 
+  const generateOptions = useCallback(
+    (parentValue: string | null) => {
+      const resultArr: SelectOptionsType = tableData.reduce(
+        (acc: SelectOptionsType, tableItem: AllOptionItemType) => {
+          if (tableItem.parentId === parentValue) {
+            acc.push({ value: tableItem.id, label: tableItem.id });
+          }
+          return acc;
+        },
+        []
+      );
+      return resultArr;
+    },
+    [tableData]
+  );
+
   const generateSelect = useCallback(
-    (rowIndex: number, columnNumber: number, parentValue: string | null) => (
-      <Select
-        placeholder="Выбрать"
-        onChange={handleSelectChange(rowIndex, columnNumber)}
-      >
-        {tableData
-          .filter(
-            (option: AllOptionItemType) => option.parentId === parentValue
-          )
-          .map((tableItem: AllOptionItemType) => (
-            <option key={tableItem.id} value={tableItem.id}>
-              {tableItem.id}
-            </option>
-          ))}
-      </Select>
-    ),
-    [handleSelectChange, tableData]
+    (rowIndex: number, columnNumber: number, parentValue: string | null) => {
+      const defaultValue = selectedTableValues?.[rowIndex]?.[columnNumber];
+
+      return (
+        <ASelect
+          addRuleToRelations={handleAddRowValue(parentValue)}
+          defValue={defaultValue}
+          handleChange={handleSelectChange(rowIndex, columnNumber)}
+          options={generateOptions(parentValue)}
+        />
+      );
+    },
+    [
+      generateOptions,
+      handleAddRowValue,
+      handleSelectChange,
+      selectedTableValues,
+    ]
   );
 
   const tableRowGenerator = useCallback(
@@ -156,20 +165,16 @@ export const TableRow: FC<TableRowProps> = memo((props) => {
             selectedTableValues[rowIndex][columnNumber - 1]
           ) {
             const parentValue = selectedTableValues[rowIndex][columnNumber - 1];
-            const filterOptions = tableData.filter(
-              (option: AllOptionItemType) => option.parentId === parentValue
-            );
 
             const handleSelect = generateSelect(
               rowIndex,
               columnNumber,
               parentValue
             );
-            const handleButtonClick = generateButton(parentValue);
 
             rowTds.push(
               <td key={columnNumber} className={cls.td}>
-                {filterOptions.length > 0 ? handleSelect : handleButtonClick}
+                {handleSelect}
               </td>
             );
           } else {
@@ -184,8 +189,8 @@ export const TableRow: FC<TableRowProps> = memo((props) => {
 
       return <>{rowTds}</>;
     },
-    [generateButton, generateSelect, selectedTableValues, tableData]
+    [generateSelect, selectedTableValues]
   );
 
   return tableRowGenerator(rowIndex);
-});
+};
